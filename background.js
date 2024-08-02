@@ -4,7 +4,6 @@ chrome.runtime.onInstalled.addListener(() => {
     });
 });
 
-chrome.runtime.sendMessage("sup dog");
 // chrome.runtime.onMessage.addListener(function (content, sendResponse) {
 //   console.log("hey julia!")
 // });
@@ -16,7 +15,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     console.log(request.greeting);
     sendResponse({ response: "hello from service worker" });
   }
-  chrome.runtime.sendMessage("hi");
 });
 
 // chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
