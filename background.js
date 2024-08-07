@@ -8,6 +8,7 @@ chrome.runtime.onInstalled.addListener(() => {
 //   console.log("hey julia!")
 // });
 
+
 console.log("hi from background")
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   console.log("here in backgrounx")
