@@ -1,8 +1,8 @@
 {
     "manifest_version": 3,
-    "name": "Hello World Extension",
+    "name": "Scraping Crunchbase",
     "version": "1.0",
-    "permissions": ["storage", "scripting","fileSystem", "activeTab", "tabs","http://*/*", "https://*/*"],
+    "permissions": ["storage","scripting","fileSystem", "activeTab", "tabs","http://*/*", "https://*/*"],
     "background": {
         "service_worker": "background.js",
         "persistent": true
@@ -10,6 +10,7 @@
     "action": {
         "default_popup": "popup.html"
     },
+
     "content_scripts": [
     {
       "matches": ["<all_urls>"],

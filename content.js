@@ -12,3 +12,5 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 chrome.runtime.sendMessage({ greeting: "hello from content script" }, (response) => {
   console.log(response);
 });
+
+

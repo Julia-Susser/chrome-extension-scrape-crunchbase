@@ -89,3 +89,38 @@ document.getElementById('saveHTML').addEventListener('click', async () => {
 });
 
 });
+
+
+// function appendHtmlToFile(content) {
+//   window.requestFileSystem = window.requestFileSystem || window.webkitRequestFileSystem;
+//   function onInitFs(fs) {
+//     fs.root.getFile('log.txt', { create: false }, function(fileEntry) {
+//       // File exists, proceed to append content
+//       fileEntry.createWriter(function(fileWriter) {
+//         fileWriter.seek(fileWriter.length);  // Move the pointer to the end of the file for appending
+//
+//         fileWriter.onwriteend = function() {
+//           console.log('Append completed.');
+//         };
+//
+//         fileWriter.onerror = function(e) {
+//           console.log('Append failed: ' + e.toString());
+//         };
+//         const blob = new Blob([content], { type: 'text/plain' });
+//         fileWriter.write(blob);
+//       }, errorHandler);
+//     }, function(e) {
+//       // File does not exist, log message
+//       if (e.code === FileError.NOT_FOUND_ERR) {
+//         console.log('log.json file does not exist.');
+//       } else {
+//         errorHandler(e);
+//       }
+//     });
+//   }
+//   function errorHandler(e) {
+//     console.error('Error: ', e);
+//   }
+//
+//   window.requestFileSystem(window.TEMPORARY, 1024 * 1024, onInitFs, errorHandler);
+// }

@@ -7,11 +7,8 @@ createLogFile();
 //   // appendHtmlToFile(document.body.innerHTML)
 // });
 
-
-document.getElementById('saveHTML').addEventListener('click', async () => {
+async function saveHTML(){
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-
-  // Inject content script to get innerHTML
   chrome.scripting.executeScript({
     target: { tabId: tab.id },
     func: () => {
@@ -47,58 +44,94 @@ document.getElementById('saveHTML').addEventListener('click', async () => {
   }, (injectionResults) => {
     for (const frameResult of injectionResults) {
       const textElements = frameResult.result; // This contains text elements with their associated tags
-
+      console.log(textElements)
       // console.log('Text Elements with Specific Tags:', textElements);
-      let allText = textElements.map(el => el.text.trim())
+      multi_tag = "identifier-multi-formatter"
+      let allText = textElements.map(el => {
+        return {
+            text: el.text.trim(),
+            multi: el.tags.includes(multi_tag)
+        };
+    });
         console.log(allText);
 
 
         // Find the index for "Add Column"
-        let index = allText.indexOf("Add Column");
+        let index = allText.findIndex(el => el.text === "Add Column");
         console.log(index)
         if (index === -1) {
           console.error('No "Add Column" found in the text elements.');
           return;
         }
 
+
         let sublists = [];
         let temp = [];
+        let multi = []
         let count = 0
         // Iterate through all text elements and split based on index
         for (let i = 0; i < allText.length; i++) {
-          if (allText[i] == ","){
-            count -=1
+          if (allText[i].text == ","){
             continue
           }
-          if (allText[i] == "Add Column"){
+          if (allText[i].text == "Add Column"){
             continue
           }
+         
 
           if (count % index === 0 && count !== 0) {
             sublists.push(temp);
             temp = [];
           }
-          count +=1
-          temp.push(allText[i]);
-
-
-
-
-
+          if (!allText[i].multi){
+            temp.push(allText[i].text);
+            count +=1
+          }else if(!allText[i+1].multi){
+            multi.push(allText[i].text)
+            temp.push(multi)
+            multi = []
+            count+=1
+          }else{
+            multi.push(allText[i].text)
+          }
         }
 
-        // Push the last temp array if it has elements
-        if (temp.length > 0) {
-          sublists.push(temp);
-        }
+      // Push the last temp array if it has elements
+      if (temp.length > 0) {
+        sublists.push(temp);
+      }
 
+      //deal with headquarters location
+      let length = sublists[0].length;
+      let industries_index = sublists[0].indexOf("Industries");
+        
+      sublists = sublists.map(sublist => {
+            let beforeIndustries = sublist.slice(0, industries_index)
+            let industriesSection;
+            if (sublist[industries_index]=="Industries"){
+              industriesSection = ["Industries"]
+            }else{
+              industriesSection = [sublist.slice(industries_index, industries_index + sublist.length - length + 1)];
+
+            }
+            let afterIndustries = sublist.slice(industries_index + sublist.length - length + 1);
+            return beforeIndustries.concat([industriesSection.join(", ")]).concat(afterIndustries);
+        });
+        
+      console.log(sublists)
 
       console.log('Sublists:', sublists);
       appendJsonToFile(sublists)
+      document.getElementById('lastElement').innerText = sublists[sublists.length-1][0];
+
+      document.getElementById('success').innerText = "Operation was successful.";
       // document.getElementById('output').textContent = JSON.stringify(allText, null, 2);
     }
   });
+}
 
+document.getElementById('saveHTML').addEventListener('click', async () => {
+  await saveHTML()
 });
 
 
@@ -169,6 +202,10 @@ function resetLogFile() {
     console.error('Error: ', e);
   }
   window.requestFileSystem(window.TEMPORARY, 1024 * 1024, onInitFs, errorHandler);
+  document.getElementById("Before").innerText = "Reset Log File"
+  document.getElementById("After").innerText = ""
+  document.getElementById("success").innerText = ""
+  document.getElementById("lastElement").innerText = ""
 }
 
 
@@ -233,40 +270,6 @@ function downloadLogFile() {
 }
 
 
-// function appendHtmlToFile(content) {
-//   window.requestFileSystem = window.requestFileSystem || window.webkitRequestFileSystem;
-//   function onInitFs(fs) {
-//     fs.root.getFile('log.txt', { create: false }, function(fileEntry) {
-//       // File exists, proceed to append content
-//       fileEntry.createWriter(function(fileWriter) {
-//         fileWriter.seek(fileWriter.length);  // Move the pointer to the end of the file for appending
-//
-//         fileWriter.onwriteend = function() {
-//           console.log('Append completed.');
-//         };
-//
-//         fileWriter.onerror = function(e) {
-//           console.log('Append failed: ' + e.toString());
-//         };
-//         const blob = new Blob([content], { type: 'text/plain' });
-//         fileWriter.write(blob);
-//       }, errorHandler);
-//     }, function(e) {
-//       // File does not exist, log message
-//       if (e.code === FileError.NOT_FOUND_ERR) {
-//         console.log('log.json file does not exist.');
-//       } else {
-//         errorHandler(e);
-//       }
-//     });
-//   }
-//   function errorHandler(e) {
-//     console.error('Error: ', e);
-//   }
-//
-//   window.requestFileSystem(window.TEMPORARY, 1024 * 1024, onInitFs, errorHandler);
-// }
-
 
 function appendJsonToFile(newContent) {
   window.requestFileSystem = window.requestFileSystem || window.webkitRequestFileSystem;
@@ -287,8 +290,16 @@ function appendJsonToFile(newContent) {
             }
           }
 
+          // Get the length of the current content before appending
+          const lengthBefore = currentContent.length;
+          document.getElementById("Before").innerText = "Length before: " + lengthBefore;
+
           // Append new content
           currentContent.push(...newContent);
+
+          // Get the length of the content after appending
+          const lengthAfter = currentContent.length;
+          document.getElementById("After").innerText = "Length after: " + lengthAfter;
 
           // Write updated content back to the file
           fileEntry.createWriter(function(fileWriter) {
@@ -320,3 +331,75 @@ function appendJsonToFile(newContent) {
 
   window.requestFileSystem(window.TEMPORARY, 1024 * 1024, onInitFs, errorHandler);
 }
+
+
+async function injectTheScript() {
+  chrome.tabs.query({active: true, currentWindow: true}, tabs => {
+      chrome.scripting.executeScript({target: {tabId: tabs[0].id}, files: ['content-script.js']})
+  })
+}
+
+document.getElementById('clickactivity').addEventListener('click', injectTheScript)
+
+
+async function goToZero() {
+  chrome.tabs.query({active: true, currentWindow: true}, tabs => {
+      chrome.scripting.executeScript({target: {tabId: tabs[0].id}, files: ['content-script.js']})
+  })
+}
+
+// document.getElementById('clickactivity').addEventListener('click', goToZero)
+
+
+function checkDifference(inputStrings) {
+  const s = inputStrings[0].replace(/,/g, "");
+  const parts = s.match(/\d+/g);
+  console.log(parts)
+  if (parts.length === 2) {
+      const firstNumber = parseInt(parts[0], 10);
+      const secondNumber = parseInt(parts[1], 10);
+      const total = inputStrings[1].match(/[\d,]+/);
+      console.log(firstNumber, secondNumber, total, ((total - secondNumber)<=0))
+      return ((total - secondNumber)<=0) || secondNumber == 1000
+  } 
+}
+
+async function finished() {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  var txt = await chrome.scripting.executeScript({
+    target: { tabId: tab.id },
+    function: () => {
+        // This function finds and logs the specific text "951-1,000" from within the 'component--results-info' class
+        const resultsInfoContainer = document.querySelector('.component--results-info');
+        let extractedText = [];
+
+        // Iterate over all child nodes to find the text node
+        if (resultsInfoContainer) {
+            resultsInfoContainer.childNodes.forEach(node => {
+                if (node.nodeType === Node.TEXT_NODE) {
+                    extractedText.push(node.textContent.trim());
+                }
+            });
+        }
+
+        console.log(extractedText); // Output to console
+        return extractedText; // Optional: return the value if needed for further processing in the extension
+    }
+  });
+  console.log(txt)
+  txt = txt[0].result
+  return checkDifference(txt)
+}
+async function run(){
+  await saveHTML()
+  var done = await finished()
+  console.log("done",done)
+  if (done){
+    return;
+  }
+  await injectTheScript()
+  setTimeout(run, 2000);
+}
+
+
+document.getElementById('run').addEventListener('click', run)
